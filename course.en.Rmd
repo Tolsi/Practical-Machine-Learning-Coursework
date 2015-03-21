@@ -1,0 +1,108 @@
+---
+title: "Coursework Practical Machine Learning"
+output: 
+  html_document:
+    pandoc_args: [
+        "+RTS", "-K64m",
+        "-RTS"
+      ]
+---
+
+## Introduction
+
+In this paper, I will build a model to assess the quality of performance of physical exercises - exercises to lift dumbbells. A - excellent performance of exercises, E - bad. [Read More](http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises)
+
+## Loading the necessary libraries
+
+In this paper I will use the Random Forest model with the library of machine learning named Caret. You must install these libraries and load them into the workspace:
+
+```{r}
+library(caret)
+library(rpart)
+library(e1071)
+library(randomForest)
+```
+
+To be able to replicate my results I set seed (random number generator state):
+
+```{r}
+set.seed(1)
+```
+
+## Downloading and clean data
+
+[The data set used to build the model] (https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+To use this file has been previously loaded into the working directory.
+
+To verify the correct model I will use cross-validation. Using the createDataPartition method from caret package, I will separate downloaded from csv file "pml-training.csv
+" to variable TrainingSet data into two sets - training (70% of the set) and test (30% of the entire set of):
+
+```{r}
+trainingSet <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+
+inTrain <- createDataPartition(y=trainingSet$classe, p=0.7, list=F)
+
+training <- trainingSet[inTrain,]
+test <- trainingSet[-inTrain,]
+dim(training); dim(test)
+```
+
+In a set of quite a lot of values that are not declared in all dimensions. To improve the quality of the model I decided to filter out:
+
+```{r, comment=TRUE}
+sum(sapply(trainingSet, function(x) any(is.na(x))))
+removeColumnsWithNA <- function(x) x[,colSums(is.na(x))==0]
+training <- removeColumnsWithNA(training)
+test <- removeColumnsWithNA(test)
+# check the size of the sets
+ncol(training); ncol(test)
+```
+
+The first 7 columns contain a meta data of the collection dataset (index, user name, time, etc.), it is incorrect to use them in the model, so we remove them.
+
+```{r, comment=TRUE}
+names(training[,1:7])
+
+trainingData <- training[,8:59]
+trainingOut <- training[,60]
+
+testData <- test[,8:59]
+testOut <- test[,60]
+```
+
+## Model Building
+
+To build the model will be used algorithms Random Forest, which shows good results on the problem of clustering. I look forward to the results of accuracy above 90%.
+
+```{r}
+modelRf <- train(trainingData,
+                        trainingOut,
+                        tuneGrid=data.frame(mtry=10),
+                        trControl=trainControl(method="none"))
+```
+
+Information about the model after training:
+```{r, echo=FALSE}
+modelRf$finalModel
+```
+
+## Testing and analysis of the resulting model
+
+```{r}
+pred <- predict(modelRf, newdata=testData)
+
+confusionMatrix(predict(modelRf,newdata=testData),testOut)
+```
+
+As we can see, the accuracy on the test data is close to 1. A great result!
+
+The importance plot of measurement values as follows:
+
+```{r, echo=FALSE}
+varImpPlot(modelRf$finalModel)
+```
+
+## Summary of results
+
+Using Random Forest algorithm provides excellent results for predicting the user activity based on the data from accelerometers.

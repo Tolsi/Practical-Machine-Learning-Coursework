@@ -1,0 +1,108 @@
+---
+title: "Курсовая работа Practical Machine Learning"
+output: 
+  html_document:
+    pandoc_args: [
+        "+RTS", "-K64m",
+        "-RTS"
+      ]
+---
+
+## Введение
+
+В этой работе я буду строить модель для оценки качества выполнения физического упражнения - упражнения на подъём гантели. A - отличное выполнение упражнения, E - плохое. [Подробнее](http://groupware.les.inf.puc-rio.br/har#weight_lifting_exercises)
+
+## Загрузка необходимых библиотек
+
+Я буду использовать модель Random Forest, используя библиотеку машинного обучения Caret. Необходимо установить эти библиотеки и загрузить их в workspace:
+
+```{r}
+library(caret)
+library(rpart)
+library(e1071)
+library(randomForest)
+```
+
+Для возможности повторить мои результаты я установлю seed (random number generator state):
+
+```{r}
+set.seed(1)
+```
+
+## Загрузка и очистка данных
+
+[Набор данных, используемый для построения модели](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+Для использования этот файл был предварительно загружен в working directory.
+
+Для проверки коррекции модели я буду использовать cross-validation. Используя функцию createDataPartition из пакета caret, я разделю загруженные из csv файла "pml-training.csv
+" в переменную trainingSet данные на два набора - training (70% от всего набора) и test (30% от всего набора):
+
+```{r}
+trainingSet <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+
+inTrain <- createDataPartition(y=trainingSet$classe, p=0.7, list=F)
+
+training <- trainingSet[inTrain,]
+test <- trainingSet[-inTrain,]
+dim(training); dim(test)
+```
+
+В наборе достаточно много значений, которые объявлены не во всех измерениях. Для улучшения качества модели я решил их отфильтровать:
+
+```{r, comment=TRUE}
+sum(sapply(trainingSet, function(x) any(is.na(x))))
+removeColumnsWithNA <- function(x) x[,colSums(is.na(x))==0]
+training <- removeColumnsWithNA(training)
+test <- removeColumnsWithNA(test)
+# проверим размер наборов
+ncol(training); ncol(test)
+```
+
+Первые 7 колонок данных содержат мета данные сбора набора данных (номер, имя пользователя, время и прочее), некорректно использовать их при построении модели, поэтому мы их удалим.
+
+```{r, comment=TRUE}
+names(training[,1:7])
+
+trainingData <- training[,8:59]
+trainingOut <- training[,60]
+
+testData <- test[,8:59]
+testOut <- test[,60]
+```
+
+## Построение модели
+
+Для построения модели будет использоваться алгоритмы Random Forest, который показывает хорошие результаты на задачах кластеризации. Я ожидаю результаты точности выше 90%.
+
+```{r}
+modelRf <- train(trainingData,
+                        trainingOut,
+                        tuneGrid=data.frame(mtry=10),
+                        trControl=trainControl(method="none"))
+```
+
+Информация о модели после обучения:
+```{r, echo=FALSE}
+modelRf$finalModel
+```
+
+## Тестирование и анализ полученной модели
+
+```{r}
+pred <- predict(modelRf, newdata=testData)
+
+confusionMatrix(predict(modelRf,newdata=testData),testOut)
+```
+
+Как мы видим, точность на тестовых данных близка к 1. Отличный результат!
+
+График важности значений измерений выглядит следующим образом:
+
+```{r, echo=FALSE}
+varImpPlot(modelRf$finalModel)
+```
+
+## Подведение результатов
+
+Использование алгоритма Random Forest даёт отличные результаты для распознавания активности человека на основе данных акселерометров, закреплённых на его теле.
