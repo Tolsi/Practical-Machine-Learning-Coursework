@@ -31,12 +31,12 @@ set.seed(1)
 
 ## Downloading and clean data
 
-[The data set used to build the model] (https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+[The data set used to build the model](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
 
 To use this file has been previously loaded into the working directory.
 
 To verify the correct model I will use cross-validation. Using the createDataPartition method from caret package, I will separate downloaded from csv file "pml-training.csv
-" to variable TrainingSet data into two sets - training (70% of the set) and test (30% of the entire set of):
+" to variable TrainingSet data into two sets - training (70% of the set) and test (30% of the set):
 
 ```{r}
 trainingSet <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!",""))
