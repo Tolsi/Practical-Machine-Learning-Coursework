@@ -59,15 +59,15 @@ test <- removeColumnsWithNA(test)
 ncol(training); ncol(test)
 ```
 
-The first 7 columns contain a meta data of the collection dataset (index, user name, time, etc.), it is incorrect to use them in the model, so we remove them.
+The first 5 columns contain a meta data of the collection dataset (index, user name, time, etc.), it is incorrect to use them in the model, so we remove them.
 
 ```{r, comment=TRUE}
-names(training[,1:7])
+names(training[,1:5])
 
-trainingData <- training[,8:59]
+trainingData <- training[,6:59]
 trainingOut <- training[,60]
 
-testData <- test[,8:59]
+testData <- test[,6:59]
 testOut <- test[,60]
 ```
 
